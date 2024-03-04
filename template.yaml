@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  open-api-rest
+
+  Sample SAM Template for open-api-rest
+  
+
+Parameters:
+  Name:
+    Type: String
+    Default: open-api-gw
+    Description: The name of the API to create, also used as the stack name.
+
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: open-api-rest/
+      Handler: app.lambdaHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      Description: open api demo
+
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Ref Name
+      StageName: dev
+      OpenApiVersion: 3.0.1
+      DefinitionBody: 
+        openapi: 3.0.1
+        info:
+          title: Hello World API
+          description: This is a swagger example.
+          contact:
+            email: you@your-company.com
+          license:
+            name: Apache 2.0
+            url: http://www.apache.org/licenses/LICENSE-2.0.html
+          version: 1.0.0
+        paths:
+          /hello:
+            get:
+              summary: get hello world
+              description: |
+                Invokes hello world lambda function example.
+              responses:
+                "200":
+                  description: search results matching criteria
+                "400":
+                  description: bad input parameter
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+
+
+  permission:
+    Type: AWS::Lambda::Permission
+    DependsOn: HelloWorldFunction
+    Properties:
+      FunctionName: !GetAtt HelloWorldFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+ 
